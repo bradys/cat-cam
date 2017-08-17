@@ -85,40 +85,44 @@ class CameraController:
         if pos > 0:
             self.camera_rotate(pos, pos - degrees)
 
-    def detectMotion(self, duration):
+    def detect_motion(self, duration):
         start_time = time.time()
         while (True):
-            end_time = time.time()
-            # Wait detecting motion for duration, stop detecting once time has passed and no motion detected
-            if(end_time - start_time) > duration and count == 1:
-                print("Finished recording " + str(duration))
-                break
-            # Capture frame-by-frame apply the background removal mask.
             ret, frame = self.cap.read()
-            fgmask = self.fgbg.apply(frame)
+            if self.motionSense:
+                end_time = time.time()
+                # Wait detecting motion for duration, stop detecting once time has passed and no motion detected
+                if(end_time - start_time) > duration and count == 1:
+                    print("Finished recording " + str(duration))
+                    break
+                fgmask = self.fgbg.apply(frame)
 
-            # Generate and prepare the threshold image, and find contours with it.
-            ret, thresh = cv2.threshold(fgmask, 127, 255, 0)
-            thresh = cv2.dilate(thresh, None, iterations=2)
-            im2, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                # Generate and prepare the threshold image, and find contours with it.
+                ret, thresh = cv2.threshold(fgmask, 127, 255, 0)
+                thresh = cv2.dilate(thresh, None, iterations=2)
+                im2, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-            # Count contours with large areas, use them for movement simple detection
-            count = 1
-            for c in contours:
-                if cv2.contourArea(c) < 500:
-                    continue
-                count += count
-                # optionally draw bounding boxes around the detected contours
-                (x, y, w, h) = cv2.boundingRect(c)
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                # Count contours with large areas, use them for movement simple detection
+                count = 1
+                for c in contours:
+                    if cv2.contourArea(c) < 500:
+                        continue
+                    count += count
+                    # optionally draw bounding boxes around the detected contours
+                    if self.drawRect:
+                        (x, y, w, h) = cv2.boundingRect(c)
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
             cv2.imshow(self.frameName, frame)
             k = cv2.waitKey(60) & 0xff
             if k == 27:
                 break
 
-    def __init__(self, camera, servo=0):
+    def __init__(self, camera, servo=0, drawRect=0, motionSense=1):
         if servo:
             self.sc = ServoController()
+        self.drawRect = drawRect
+        self.motionSense = motionSense
         self.frameName = "Camera " + str(camera)
         self.cap = cv2.VideoCapture(camera)
         self.fgbg = cv2.createBackgroundSubtractorMOG2()
@@ -138,40 +142,39 @@ def dynamic_camera(cam):
     with CameraController(cam, 1) as cc:
         while(True):
             cc.camera_right(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
             cc.camera_right(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
             cc.camera_right(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
             cc.camera_right(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
             cc.camera_right(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
             cc.camera_right(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
             cc.camera_left(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
             cc.camera_left(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
             cc.camera_left(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
             cc.camera_left(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
             cc.camera_left(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
             cc.camera_left(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
             cc.camera_left(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
             cc.camera_left(25)
-            cc.detectMotion(20)
+            cc.detect_motion(20)
 
 def static_camera(cam):
-    print("Static Cam")
-    with CameraController(cam) as cc:
+    print("Static Cam - no motion detection")
+    with CameraController(cam, drawRect=1, motionSense=0) as cc:
         while (True):
-            cc.detectMotion(20)
-
+            cc.detect_motion(20)
 
 if __name__ == "__main__":
     try:
